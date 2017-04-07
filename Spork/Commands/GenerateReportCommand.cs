@@ -38,12 +38,15 @@ namespace Spork.Commands
                 {
                     var changeLogEntries = await repoflector.GetChangelog(repo.Name);
                     var nugetVersions = await nuggieflector.GetVersions(repo.Name);
+                    var rebusDependencyVersion = await repoflector.GetRebusDependencyVersion(repo.Name);
 
                     return new
                     {
                         Name = repo.Name,
                         ChangelogVersion = changeLogEntries.LastOrDefault()?.Version,
-                        NugetVersion = nugetVersions.LastOrDefault()
+                        RebusVersion = rebusDependencyVersion,
+                        NugetStable = nugetVersions.LastOrDefault(v => string.IsNullOrWhiteSpace(v.Prerelease)),
+                        NugetLatest = nugetVersions.LastOrDefault(),
                     };
                 })
                 .ToListAsync();

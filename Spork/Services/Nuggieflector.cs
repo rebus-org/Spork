@@ -21,7 +21,8 @@ namespace Spork.Services
 
         public async Task<List<SemVersion>> GetVersions(string packageName)
         {
-            var json = await _client.GetStringAsync(packageName);
+            var relativeUrl = $"{packageName}?IncludePrerelease=true";
+            var json = await _client.GetStringAsync(relativeUrl);
             var versions = JsonConvert.DeserializeObject<string[]>(json);
             return versions
                 .Select(version => SemVersion.Parse(version))

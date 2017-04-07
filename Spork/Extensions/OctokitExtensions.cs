@@ -5,8 +5,19 @@ namespace Spork.Extensions
 {
     public static class OctokitExtensions
     {
-        static readonly string[] Include = {"Rebus"};
-        static readonly string[] Exclude = {"Rebus.Hosting"};
+        const string CoreRebusRepoName = "Rebus";
+
+        static readonly string[] Include = {CoreRebusRepoName};
+        static readonly string[] Exclude =
+        {
+            "Rebus.Hosting",
+            "Rebus.LegacyCompatibility",
+        };
+
+        public static bool IsCore(this string repositoryName)
+        {
+            return string.Equals(CoreRebusRepoName, repositoryName);
+        }
 
         public static bool IsOfficialRebusRepository(this Repository repository)
         {
