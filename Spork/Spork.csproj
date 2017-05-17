@@ -76,4 +76,12 @@
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>if "$(ConfigurationName)"=="Release" (
+	if exist "C:\Runnable" (
+	    xcopy "$(TargetDir)\*.exe" "C:\Runnable" /fy
+	    xcopy "$(TargetDir)\*.config" "C:\Runnable" /fy
+	)
+)</PostBuildEvent>
+  </PropertyGroup>
 </Project>

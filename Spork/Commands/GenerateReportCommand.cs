@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using GoCommando;
 using Octokit;
+using Semver;
 using Spinnerino;
 using Spork.Extensions;
 using Spork.Services;
@@ -25,28 +26,40 @@ namespace Spork.Commands
         async Task Execute()
         {
             var client = new GitHubClient(new ProductHeaderValue("spork-client"));
-            var repositories = await client.Repository.GetAllForOrg("rebus-org");
             var repoflector = new Repoflector();
             var nuggieflector = new Nuggieflector();
 
+            var repositories = await client.Repository.GetAllForOrg("rebus-org");
+            var rebusCoreVersion = (await nuggieflector.GetVersions("Rebus")).Last();
+
             Console.WriteLine("Loading repositories...");
+
             var spinner = new IndefiniteSpinner();
             var rows = await repositories
                 .Where(repo => repo.IsOfficialRebusRepository())
                 .OrderBy(repo => repo.Name)
                 .Select(async repo =>
                 {
-                    var changeLogEntries = await repoflector.GetChangelog(repo.Name);
-                    var nugetVersions = await nuggieflector.GetVersions(repo.Name);
-                    var rebusDependencyVersion = await repoflector.GetRebusDependencyVersion(repo.Name);
+                    var repositoryName = repo.Name;
+
+                    var changeLogEntries = await repoflector.GetChangelog(repositoryName);
+                    var nugetVersions = await nuggieflector.GetVersions(repositoryName);
+                    var rebusDependencyVersion = await repoflector.GetRebusDependencyVersion(repositoryName);
+
+                    var changelogVersion = changeLogEntries.LastOrDefault()?.Version;
+                    var nugetStable = nugetVersions.LastOrDefault(v => string.IsNullOrWhiteSpace(v.Prerelease));
+                    var nugetLatest = nugetVersions.LastOrDefault();
+
+                    var isSpiffy = IsSpiffy(repositoryName, rebusCoreVersion, rebusDependencyVersion);
 
                     return new
                     {
-                        Name = repo.Name,
-                        ChangelogVersion = changeLogEntries.LastOrDefault()?.Version,
+                        Name = repositoryName,
+                        ChangelogVersion = changelogVersion,
                         RebusVersion = rebusDependencyVersion,
-                        NugetStable = nugetVersions.LastOrDefault(v => string.IsNullOrWhiteSpace(v.Prerelease)),
-                        NugetLatest = nugetVersions.LastOrDefault(),
+                        NugetStable = nugetStable,
+                        NugetLatest = nugetLatest,
+                        IsSpiffy = isSpiffy
                     };
                 })
                 .ToListAsync();
@@ -54,6 +67,18 @@ namespace Spork.Commands
             spinner.Dispose();
 
             Console.WriteLine(Formatter.FormatObjects(rows));
+        }
+
+        bool IsSpiffy(string repositoryName, SemVersion rebusCoreVersion, SemVersion rebusDependencyVersion)
+        {
+            if (repositoryName == "Rebus") return true;
+
+            if (rebusCoreVersion != rebusDependencyVersion)
+            {
+                return false;
+            }
+
+            return true;
         }
     }
 }
