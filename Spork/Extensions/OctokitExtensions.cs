@@ -10,7 +10,6 @@ namespace Spork.Extensions
         static readonly string[] Include = {CoreRebusRepoName};
         static readonly string[] Exclude =
         {
-            "Rebus.Hosting",
             "Rebus.LegacyCompatibility",
             "Rebus.Recipes",
         };
