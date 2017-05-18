@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using GoCommando;
@@ -18,23 +20,51 @@ namespace Spork.Commands
     {
         static readonly TableFormatter Formatter = new TableFormatter(new Hints { CollapseVerticallyWhenSingleLine = true });
 
+        readonly ConcurrentStack<IDisposable> _disposables = new ConcurrentStack<IDisposable>();
+
+        void Using(IDisposable disposable) => _disposables.Push(disposable);
+
         public void Run()
         {
-            Execute().Wait();
+            try
+            {
+                Execute().Wait();
+            }
+            finally
+            {
+                while (_disposables.TryPop(out var disposable))
+                {
+                    disposable.Dispose();
+                }
+            }
         }
 
         async Task Execute()
         {
             var client = new GitHubClient(new ProductHeaderValue("spork-client"));
             var repoflector = new Repoflector();
+
+            Using(repoflector);
+
             var nuggieflector = new Nuggieflector();
+
+            Using(nuggieflector);
 
             var repositories = await client.Repository.GetAllForOrg("rebus-org");
             var rebusCoreVersion = (await nuggieflector.GetVersions("Rebus")).Last();
 
             Console.WriteLine("Loading repositories...");
 
-            var spinner = new IndefiniteSpinner();
+            using (var spinner = new IndefiniteSpinner())
+            {
+                var rows = await GetRows(repositories, repoflector, nuggieflector, rebusCoreVersion);
+
+                Console.WriteLine(Formatter.FormatDictionaries(rows));
+            }
+        }
+
+        static async Task<List<Dictionary<string, object>>> GetRows(IReadOnlyList<Repository> repositories, Repoflector repoflector, Nuggieflector nuggieflector, SemVersion rebusCoreVersion)
+        {
             var rows = await repositories
                 .Where(repo => repo.IsOfficialRebusRepository())
                 .OrderBy(repo => repo.Name)
@@ -50,35 +80,40 @@ namespace Spork.Commands
                     var nugetStable = nugetVersions.LastOrDefault(v => string.IsNullOrWhiteSpace(v.Prerelease));
                     var nugetLatest = nugetVersions.LastOrDefault();
 
-                    var isSpiffy = IsSpiffy(repositoryName, rebusCoreVersion, rebusDependencyVersion);
+                    var needsRebusDependencyUpdate =
+                        NeedsRebusDependencyUpdate(repositoryName, rebusCoreVersion, rebusDependencyVersion);
+                    var needsPush = NeedsPush(changelogVersion, nugetLatest);
 
-                    return new
+                    return new Dictionary<string, object>
                     {
-                        Name = repositoryName,
-                        ChangelogVersion = changelogVersion,
-                        RebusVersion = rebusDependencyVersion,
-                        NugetStable = nugetStable,
-                        NugetLatest = nugetLatest,
-                        IsSpiffy = isSpiffy
+                        ["Repository"] = repositoryName,
+                        ["Changelog ver."] = changelogVersion,
+                        ["Rebus ver."] = rebusDependencyVersion,
+                        ["Nuget stable"] = nugetStable,
+                        ["Nuget latest"] = nugetLatest,
+                        ["Rebus dep."] = needsRebusDependencyUpdate ? "!!!" : "",
+                        ["Needs push"] = needsPush ? "!!!" : ""
                     };
                 })
                 .ToListAsync();
-
-            spinner.Dispose();
-
-            Console.WriteLine(Formatter.FormatObjects(rows));
+            return rows;
         }
 
-        bool IsSpiffy(string repositoryName, SemVersion rebusCoreVersion, SemVersion rebusDependencyVersion)
+        static bool NeedsPush(SemVersion changelogVersion, SemVersion nugetLatest)
         {
-            if (repositoryName == "Rebus") return true;
+            return changelogVersion != nugetLatest;
+        }
+
+        static bool NeedsRebusDependencyUpdate(string repositoryName, SemVersion rebusCoreVersion, SemVersion rebusDependencyVersion)
+        {
+            if (repositoryName == "Rebus") return false;
 
             if (rebusCoreVersion != rebusDependencyVersion)
             {
-                return false;
+                return true;
             }
 
-            return true;
+            return false;
         }
     }
 }

@@ -8,7 +8,7 @@ using Semver;
 
 namespace Spork.Services
 {
-    class Nuggieflector
+    class Nuggieflector : IDisposable
     {
         readonly HttpClient _client = new HttpClient();
 
@@ -24,10 +24,18 @@ namespace Spork.Services
             var relativeUrl = $"{packageName}?IncludePrerelease=true";
             var json = await _client.GetStringAsync(relativeUrl);
             var versions = JsonConvert.DeserializeObject<string[]>(json);
-            return versions
+            var versionsList = versions
                 .Select(version => SemVersion.Parse(version))
-                .OrderBy(version => version)
                 .ToList();
+
+            versionsList.Sort((v1,v2) => v1.CompareByPrecedence(v2));
+
+            return versionsList;
+        }
+
+        public void Dispose()
+        {
+            _client?.Dispose();
         }
     }
 }

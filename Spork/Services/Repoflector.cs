@@ -10,7 +10,7 @@ using Spork.Model;
 
 namespace Spork.Services
 {
-    class Repoflector
+    class Repoflector : IDisposable
     {
         readonly HttpClient _client = new HttpClient();
         readonly ChangelogParser _changelogParser = new ChangelogParser();
@@ -76,6 +76,11 @@ namespace Spork.Services
             var semVerVersionString = rebusPackageReference?.Attribute("Version")?.Value;
 
             return semVerVersionString == null ? null : SemVersion.Parse(semVerVersionString);
+        }
+
+        public void Dispose()
+        {
+            _client?.Dispose();
         }
     }
 }

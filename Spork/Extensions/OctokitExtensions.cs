@@ -12,6 +12,7 @@ namespace Spork.Extensions
         {
             "Rebus.Hosting",
             "Rebus.LegacyCompatibility",
+            "Rebus.Recipes",
         };
 
         public static bool IsCore(this string repositoryName)
