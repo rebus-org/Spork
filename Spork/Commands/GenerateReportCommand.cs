@@ -55,7 +55,7 @@ namespace Spork.Commands
 
             Console.WriteLine("Loading repositories...");
 
-            using (var spinner = new IndefiniteSpinner())
+            using (new IndefiniteSpinner())
             {
                 var rows = await GetRows(repositories, repoflector, nuggieflector, rebusCoreVersion);
 
@@ -84,6 +84,8 @@ namespace Spork.Commands
                         NeedsRebusDependencyUpdate(repositoryName, rebusCoreVersion, rebusDependencyVersion);
                     var needsPush = NeedsPush(changelogVersion, nugetLatest);
 
+                    var openIssues = repo.OpenIssuesCount == 0 ? "" : repo.OpenIssuesCount.ToString();
+
                     return new Dictionary<string, object>
                     {
                         ["Repository"] = repositoryName,
@@ -92,7 +94,8 @@ namespace Spork.Commands
                         ["Nuget stable"] = nugetStable,
                         ["Nuget latest"] = nugetLatest,
                         ["Rebus dep."] = needsRebusDependencyUpdate ? "!!!" : "",
-                        ["Needs push"] = needsPush ? "!!!" : ""
+                        ["Needs push"] = needsPush ? "!!!" : "",
+                        ["Open issues"] = openIssues
                     };
                 })
                 .ToListAsync();
