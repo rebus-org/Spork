@@ -66,7 +66,7 @@ namespace Spork.Commands
         static async Task<List<Dictionary<string, object>>> GetRows(IReadOnlyList<Repository> repositories, Repoflector repoflector, Nuggieflector nuggieflector, SemVersion rebusCoreVersion)
         {
             var rows = await repositories
-                .Where(repo => repo.IsOfficialRebusRepository())
+                .Where(repo => repo.IsSupportedRebusRepository())
                 .OrderBy(repo => repo.Name)
                 .Select(async repo =>
                 {

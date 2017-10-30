@@ -1,5 +1,5 @@
-﻿using System.Linq;
-using Octokit;
+﻿using Octokit;
+using System.Linq;
 
 namespace Spork.Extensions
 {
@@ -19,9 +19,12 @@ namespace Spork.Extensions
             return string.Equals(CoreRebusRepoName, repositoryName);
         }
 
-        public static bool IsOfficialRebusRepository(this Repository repository)
+        public static bool IsSupportedRebusRepository(this Repository repository)
         {
             var name = repository.Name;
+            var isDeprecated = (repository.Description??"").ToLowerInvariant().Contains("deprecated");
+
+            if (isDeprecated) return false;
 
             if (Exclude.Contains(name)) return false;
 
