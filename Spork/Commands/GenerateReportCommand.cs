@@ -8,6 +8,7 @@ using Octokit;
 using Semver;
 using Spinnerino;
 using Spork.Extensions;
+using Spork.Model;
 using Spork.Services;
 using Tababular;
 // ReSharper disable RedundantAnonymousTypePropertyName
@@ -107,11 +108,13 @@ namespace Spork.Commands
             return changelogVersion != nugetLatest;
         }
 
-        static bool NeedsRebusDependencyUpdate(string repositoryName, SemVersion rebusCoreVersion, SemVersion rebusDependencyVersion)
+        static bool NeedsRebusDependencyUpdate(string repositoryName, SemVersion rebusCoreVersion, NuGetDependencyVersion rebusDependencyVersion)
         {
             if (repositoryName == "Rebus") return false;
 
-            if (rebusCoreVersion != rebusDependencyVersion)
+            var rebusDependencySemver = rebusDependencyVersion.ToSemVersionOrNull();
+
+            if (rebusDependencySemver != null && rebusCoreVersion != rebusDependencySemver)
             {
                 return true;
             }

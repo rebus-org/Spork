@@ -38,7 +38,7 @@ namespace Spork.Services
             }
         }
 
-        public async Task<SemVersion> GetRebusDependencyVersion(string repositoryName)
+        public async Task<NuGetDependencyVersion> GetRebusDependencyVersion(string repositoryName)
         {
             if (repositoryName.IsCore()) return null;
 
@@ -58,12 +58,14 @@ namespace Spork.Services
             }
         }
 
-        SemVersion GetRebusVersionFrom(string mainProjectFileXml)
+        static NuGetDependencyVersion GetRebusVersionFrom(string mainProjectFileXml)
         {
             var document = XDocument.Parse(mainProjectFileXml);
 
             // look for this:
             // <PackageReference Include="Rebus" Version="4.0.0-b06" />
+            // or this:
+            // <PackageReference Include="Rebus" Version="4.0.0-*" />
 
             var projectElement = document.Element("Project");
 
@@ -75,11 +77,7 @@ namespace Spork.Services
 
             var semVerVersionString = rebusPackageReference?.Attribute("Version")?.Value;
 
-            return semVerVersionString == null
-                ? null
-                : SemVersion.TryParse(semVerVersionString, out var version)
-                    ? version
-                    : throw new FormatException($"Could not parse '{semVerVersionString}' as a proper semver version string");
+            return new NuGetDependencyVersion(semVerVersionString);
         }
 
         public void Dispose()

@@ -68,6 +68,7 @@
     <Compile Include="Extensions\TaskExtensions.cs" />
     <Compile Include="Model\ChangeLogEntry.cs" />
     <Compile Include="Model\ChangelogParser.cs" />
+    <Compile Include="Model\NuGetDependencyVersion.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\Nuggieflector.cs" />
