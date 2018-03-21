@@ -75,7 +75,11 @@ namespace Spork.Services
 
             var semVerVersionString = rebusPackageReference?.Attribute("Version")?.Value;
 
-            return semVerVersionString == null ? null : SemVersion.Parse(semVerVersionString);
+            return semVerVersionString == null
+                ? null
+                : SemVersion.TryParse(semVerVersionString, out var version)
+                    ? version
+                    : throw new FormatException($"Could not parse '{semVerVersionString}' as a proper semver version string");
         }
 
         public void Dispose()
