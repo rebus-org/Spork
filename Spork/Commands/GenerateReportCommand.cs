@@ -91,7 +91,7 @@ namespace Spork.Commands
                     {
                         ["Repository"] = repositoryName,
                         ["Changelog ver."] = changelogVersion,
-                        ["Rebus ver."] = rebusDependencyVersion,
+                        ["Rebus ver."] = rebusDependencyVersion?.VersionString,
                         ["Nuget stable"] = nugetStable,
                         ["Nuget latest"] = nugetLatest,
                         ["Rebus dep."] = needsRebusDependencyUpdate ? "!!!" : "",
