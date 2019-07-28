@@ -74,6 +74,7 @@ namespace Spork.Model
                 var versionString = lines.First().Trim();
 
                 if (versionString.StartsWith("<")) return null;
+                if (versionString.StartsWith("~~")) return null; // strike-through of version means that it must be ignored
 
                 var version = SemVersion.Parse(versionString);
                 var bulletLines = lines.Skip(1);
