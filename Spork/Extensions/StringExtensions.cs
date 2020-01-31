@@ -7,12 +7,10 @@ namespace Spork.Extensions
         static readonly string[] AllowedLineSeparators =
         {
             Environment.NewLine,
-            "\n\n"
+            "\n",
+            "\r"
         };
 
-        public static string[] GetLines(this string str)
-        {
-            return str.Split(AllowedLineSeparators, StringSplitOptions.RemoveEmptyEntries);
-        }
+        public static string[] GetLines(this string str) => str.Split(AllowedLineSeparators, StringSplitOptions.RemoveEmptyEntries);
     }
 }

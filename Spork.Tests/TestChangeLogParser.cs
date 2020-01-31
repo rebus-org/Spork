@@ -1,16 +1,24 @@
-﻿using System;
+﻿using System.Linq;
 using NUnit.Framework;
+using Spork.Model;
 using Testy;
+using Testy.Extensions;
 
 namespace Spork.Tests
 {
     [TestFixture]
-    public class TestChangeLogParser : FixtureBase
+    public class TestChangelogParser : FixtureBase
     {
+        ChangelogParser _parser;
+
         [Test]
         public void CanParseThisShit()
         {
-            //new ChangelogParser()
+            _parser = new ChangelogParser();
+
+            var entries = _parser.ParseChangelog(changelogExample).ToList();
+
+            entries.DumpTable();
         }
 
         const string changelogExample = @"# Changelog
