@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -12,6 +11,7 @@ using Spork.Model;
 using Spork.Services;
 using Tababular;
 // ReSharper disable RedundantAnonymousTypePropertyName
+// ReSharper disable AccessToDisposedClosure
 
 namespace Spork.Commands
 {
@@ -21,47 +21,31 @@ namespace Spork.Commands
     {
         static readonly TableFormatter Formatter = new TableFormatter(new Hints { CollapseVerticallyWhenSingleLine = true });
 
-        readonly ConcurrentStack<IDisposable> _disposables = new ConcurrentStack<IDisposable>();
+        public void Run() => Execute().Wait();
 
-        void Using(IDisposable disposable) => _disposables.Push(disposable);
-
-        public void Run()
-        {
-            try
-            {
-                Execute().Wait();
-            }
-            finally
-            {
-                while (_disposables.TryPop(out var disposable))
-                {
-                    disposable.Dispose();
-                }
-            }
-        }
-
-        async Task Execute()
+        static async Task Execute()
         {
             var client = new GitHubClient(new ProductHeaderValue("spork-client"));
-            var repoflector = new Repoflector();
 
-            Using(repoflector);
+            using var repoflector = new Repoflector();
 
-            var nuggieflector = new Nuggieflector();
-
-            Using(nuggieflector);
+            using var nuggieflector = new Nuggieflector();
 
             var repositories = await client.Repository.GetAllForOrg("rebus-org");
             var rebusCoreVersion = (await nuggieflector.GetVersions("Rebus")).Last();
 
             Console.WriteLine("Loading repositories...");
 
-            using (new IndefiniteSpinner())
+            async Task<List<Dictionary<string, object>>> GetRows()
             {
-                var rows = await GetRows(repositories, repoflector, nuggieflector, rebusCoreVersion);
+                using var _ = new IndefiniteSpinner();
 
-                Console.WriteLine(Formatter.FormatDictionaries(rows));
+                return await GenerateReportCommand.GetRows(repositories, repoflector, nuggieflector, rebusCoreVersion);
             }
+
+            var rows = await GetRows();
+
+            Console.WriteLine(Formatter.FormatDictionaries(rows));
         }
 
         static async Task<List<Dictionary<string, object>>> GetRows(IReadOnlyList<Repository> repositories, Repoflector repoflector, Nuggieflector nuggieflector, SemVersion rebusCoreVersion)

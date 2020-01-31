@@ -11,15 +11,22 @@ namespace Spork.Tests
     {
         ChangelogParser _parser;
 
-        [Test]
-        public void CanParseThisShit()
+        [TestCase(changelogExample)]
+        [TestCase(anotherExample)]
+        public void CanParseThisShit(string text)
         {
             _parser = new ChangelogParser();
 
-            var entries = _parser.ParseChangelog(changelogExample).ToList();
+            var entries = _parser.ParseChangelog(text).ToList();
 
             entries.DumpTable();
         }
+
+        const string anotherExample = @"# Changelog
+
+## ~~0.0.1~~
+* Example
+";
 
         const string changelogExample = @"# Changelog
 
