@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -27,8 +28,14 @@ namespace Spork.Services
 
             try
             {
-                var changelogString = await _client.GetStringAsync(relativeAddress);
+                using var response = await _client.GetAsync(relativeAddress);
+
+                response.EnsureSuccessStatusCode();
+
+                var changelogString = await response.Content.ReadAsStringAsync();
+
                 var changeLogEntries = _changelogParser.ParseChangelog(changelogString).ToList();
+                
                 return changeLogEntries;
             }
             catch (Exception exception)
@@ -47,7 +54,13 @@ namespace Spork.Services
 
             try
             {
-                var mainProjectFileXml = await _client.GetStringAsync(relativeAddress);
+                using var response = await _client.GetAsync(relativeAddress);
+
+                if (response.StatusCode == HttpStatusCode.NotFound) return null;
+
+                response.EnsureSuccessStatusCode();
+
+                var mainProjectFileXml = await response.Content.ReadAsStringAsync();
 
                 return GetRebusVersionFrom(mainProjectFileXml);
             }
