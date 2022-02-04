@@ -7,10 +7,10 @@
 
 	<ItemGroup>
 		<PackageReference Include="gocommando" Version="0.99.5" />
-		<PackageReference Include="octokit" Version="0.36.0" />
+		<PackageReference Include="octokit" Version="0.50.0" />
 		<PackageReference Include="semver" Version="2.0.6" />
 		<PackageReference Include="spinnerino" Version="2.0.0" />
-		<PackageReference Include="tababular" Version="3.0.1" />
+		<PackageReference Include="tababular" Version="4.1.0" />
 	</ItemGroup>
 
 </Project>
