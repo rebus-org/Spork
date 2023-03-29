@@ -2,13 +2,14 @@
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
-		<TargetFramework>net6.0</TargetFramework>
+		<TargetFramework>net7.0</TargetFramework>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="gocommando" Version="0.99.5" />
-		<PackageReference Include="octokit" Version="0.50.0" />
-		<PackageReference Include="semver" Version="2.0.6" />
+		<PackageReference Include="nito.asyncex" Version="5.1.2" />
+		<PackageReference Include="octokit" Version="5.0.2" />
+		<PackageReference Include="semver" Version="2.3.0" />
 		<PackageReference Include="spinnerino" Version="2.0.0" />
 		<PackageReference Include="tababular" Version="4.1.0" />
 	</ItemGroup>

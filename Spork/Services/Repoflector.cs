@@ -1,10 +1,11 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using Nito.AsyncEx;
 using Spork.Extensions;
 using Spork.Model;
 
@@ -12,8 +13,10 @@ namespace Spork.Services
 {
     class Repoflector : IDisposable
     {
-        readonly HttpClient _client = new HttpClient();
-        readonly ChangelogParser _changelogParser = new ChangelogParser();
+        readonly ConcurrentDictionary<string, string> _fileCache = new(StringComparer.OrdinalIgnoreCase);
+        readonly ConcurrentDictionary<string, AsyncSemaphore> _cacheSemaphores = new();
+        readonly ChangelogParser _changelogParser = new();
+        readonly HttpClient _client = new();
 
         public Repoflector()
         {
@@ -28,14 +31,10 @@ namespace Spork.Services
 
             try
             {
-                using var response = await _client.GetAsync(relativeAddress);
-
-                response.EnsureSuccessStatusCode();
-
-                var changelogString = await response.Content.ReadAsStringAsync();
+                var changelogString = await GetFileFromUrl(relativeAddress);
 
                 var changeLogEntries = _changelogParser.ParseChangelog(changelogString).ToList();
-                
+
                 return changeLogEntries;
             }
             catch (Exception exception)
@@ -54,15 +53,84 @@ namespace Spork.Services
 
             try
             {
-                using var response = await _client.GetAsync(relativeAddress);
-
-                if (response.StatusCode == HttpStatusCode.NotFound) return null;
-
-                response.EnsureSuccessStatusCode();
-
-                var mainProjectFileXml = await response.Content.ReadAsStringAsync();
+                var mainProjectFileXml = await GetFileFromUrl(relativeAddress);
 
                 return GetRebusVersionFrom(mainProjectFileXml);
+            }
+            catch (Exception exception)
+            {
+                throw new ApplicationException($"Could not get <main-project>.csproj from {_client.BaseAddress}{relativeAddress}", exception);
+            }
+        }
+
+        public async Task<string> GetLicenseExpression(string repositoryName)
+        {
+            // https://github.com/rebus-org/Rebus.Msmq/blob/master/Rebus.Msmq/Rebus.Msmq.csproj
+
+            var relativeAddress = $"{repositoryName}/master/{repositoryName}/{repositoryName}.csproj";
+
+            try
+            {
+                var mainProjectFileXml = await GetFileFromUrl(relativeAddress);
+                var document = XDocument.Parse(mainProjectFileXml);
+                var projectElement = document.Element("Project");
+                if (projectElement == null) return null;
+
+                var licenseExpressionElement = projectElement
+                    .Elements().SelectMany(g => g.Elements())
+                    .FirstOrDefault(e => e.Name == "PackageLicenseExpression");
+
+                return licenseExpressionElement?.Value;
+            }
+            catch (Exception exception)
+            {
+                throw new ApplicationException($"Could not get <main-project>.csproj from {_client.BaseAddress}{relativeAddress}", exception);
+            }
+        }
+
+        public async Task<string> GetPackageIcon(string repositoryName)
+        {
+            // https://github.com/rebus-org/Rebus.Msmq/blob/master/Rebus.Msmq/Rebus.Msmq.csproj
+
+            var relativeAddress = $"{repositoryName}/master/{repositoryName}/{repositoryName}.csproj";
+
+            try
+            {
+                var mainProjectFileXml = await GetFileFromUrl(relativeAddress);
+                var document = XDocument.Parse(mainProjectFileXml);
+                var projectElement = document.Element("Project");
+                if (projectElement == null) return null;
+
+                var packageIconElement = projectElement
+                    .Elements().SelectMany(g => g.Elements())
+                    .FirstOrDefault(e => e.Name == "PackageIcon");
+
+                return packageIconElement?.Value;
+            }
+            catch (Exception exception)
+            {
+                throw new ApplicationException($"Could not get <main-project>.csproj from {_client.BaseAddress}{relativeAddress}", exception);
+            }
+        }
+
+        public async Task<string> GetPackageReadmePath(string repositoryName)
+        {
+            // https://github.com/rebus-org/Rebus.Msmq/blob/master/Rebus.Msmq/Rebus.Msmq.csproj
+
+            var relativeAddress = $"{repositoryName}/master/{repositoryName}/{repositoryName}.csproj";
+
+            try
+            {
+                var mainProjectFileXml = await GetFileFromUrl(relativeAddress);
+                var document = XDocument.Parse(mainProjectFileXml);
+                var projectElement = document.Element("Project");
+                if (projectElement == null) return null;
+
+                var packageIconElement = projectElement
+                    .Elements().SelectMany(g => g.Elements())
+                    .FirstOrDefault(e => e.Name == "PackageIcon");
+
+                return packageIconElement?.Value;
             }
             catch (Exception exception)
             {
@@ -92,9 +160,25 @@ namespace Spork.Services
             return new NuGetDependencyVersion(semVerVersionString);
         }
 
-        public void Dispose()
+        async Task<string> GetFileFromUrl(string relativeAddress)
         {
-            _client?.Dispose();
+            if (_fileCache.TryGetValue(relativeAddress, out var result)) return result;
+
+            using var _ = await _cacheSemaphores.GetOrAdd(relativeAddress, x => new(initialCount: 1)).LockAsync();
+
+            if (_fileCache.TryGetValue(relativeAddress, out var result2)) return result2;
+
+            using var response = await _client.GetAsync(relativeAddress);
+
+            response.EnsureSuccessStatusCode();
+
+            var str = await response.Content.ReadAsStringAsync();
+
+            _fileCache[relativeAddress] = str;
+
+            return str;
         }
+
+        public void Dispose() => _client?.Dispose();
     }
 }
