@@ -1,10 +1,18 @@
 ﻿using System;
 using GoCommando;
+using Spork.Commands;
+#pragma warning disable CS0219
+#pragma warning disable IDE0059
 
 namespace Spork
 {
     class Program
     {
+        static Program()
+        {
+            GenerateReportCommand cmd = null;
+        }
+
         static void Main()
         {
             var foregroundColor = Console.ForegroundColor;

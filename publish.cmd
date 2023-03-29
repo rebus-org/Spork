@@ -13,7 +13,7 @@ if %ERRORLEVEL% neq 0 (
 )
 
 echo Publishing...
-dotnet publish Spork -c Release --self-contained --no-restore -r win-x64 -p:PublishSingleFile=true;PublishTrimmed=true 
+dotnet publish Spork -c Release --self-contained --no-restore -r win-x64 -p:PublishSingleFile=true
 if %ERRORLEVEL% neq 0 (
  	goto exit_fail
 )
